@@ -7,15 +7,19 @@ import requests
 from bs4 import BeautifulSoup
 from PIL import Image
 from wordcloud import STOPWORDS
+import joblib
+from sklearn.preprocessing import LabelEncoder
 
 # load data
-sentiment_analysis = pd.read_csv('data/SentimentAnalysis.csv')
-
+sentiment_analysis = pd.read_csv(r"C:\Users\cshre\OneDrive - Babson College\Shreeya\Semester 2\Advanced Programming\Black Friday Project\subset_sentiment_analysis_copy.csv")
+model = joblib.load(r"C:\Users\cshre\OneDrive - Babson College\Shreeya\Semester 2\Advanced Programming\Black Friday Project\trained_model.pkl")
 # unique product categories
 product_categories = sentiment_analysis['product_category_name'].unique()
+# Perform label encoding for the 'product_category_name_english' column
+label_encoder = LabelEncoder()
 
 # main filter
-filter_option = st.sidebar.selectbox("Filter by:", ["Best Reviews", "Product Category"])
+filter_option = st.sidebar.selectbox("Filter by:", ["Best Reviews", "Product Category","Predict a Price"])
 
 if filter_option == "Best Reviews":
     # product categories in order from best reviewed to least reviewed
@@ -93,7 +97,7 @@ if filter_option == "Best Reviews":
     # format as bold and use color codes
     st.markdown(f"<font color='{color}' size='5'><b>{average_sentiment_text}</b></font>", unsafe_allow_html=True)
 
-else:
+elif filter_option == "Product Category":
     # filter by product category
     st.sidebar.header("Select Product Category")
 
@@ -205,3 +209,53 @@ else:
 
     # format as bold and use HTML color codes
     st.markdown(f"<font color='{color}' size='5'><b>{average_sentiment_text}</b></font>", unsafe_allow_html=True)
+else:
+    # User input components
+    product_category_options = ['telephony', 'agro_industry_and_commerce', 'bed_bath_table',
+                                'perfumery', 'housewares', 'cool_stuff', 'watches_gifts',
+                                'electronics', 'sports_leisure', 'garden_tools', 'toys',
+                                'books_general_interest', 'health_beauty', 'auto',
+                                'consoles_games', 'musical_instruments', 'computers_accessories',
+                                'baby', 'fashion_bags_accessories', 'furniture_decor',
+                                'home_construction', 'stationery', 'tablets_printing_image',
+                                'pet_shop', 'office_furniture', 'furniture_living_room',
+                                'luggage_accessories', 'audio', 'construction_tools_safety',
+                                'home_confort', 'kitchen_dining_laundry_garden_furniture',
+                                'small_appliances', 'cine_photo',
+                                'construction_tools_construction', 'food_drink',
+                                'christmas_supplies', 'fixed_telephony', 'home_appliances_2',
+                                'drinks', 'construction_tools_lights', 'home_appliances', 'food',
+                                'industry_commerce_and_business', 'fashion_shoes',
+                                'air_conditioning', 'costruction_tools_garden', 'books_technical',
+                                'party_supplies', 'market_place', 'home_comfort_2',
+                                'fashion_male_clothing', 'furniture_bedroom',
+                                'fashion_underwear_beach']
+    product_category = st.selectbox('Select product category', product_category_options)
+    purchase_date = st.date_input('Select purchase date around a Black Friday')
+    # Define the options for seller state selection
+    seller_state_options = ['SP', 'RJ', 'PE', 'PR', 'GO', 'SC', 'BA', 'DF', 'RS', 'MG', 'RN',
+                            'MT', 'CE', 'PB', 'AC', 'ES', 'RO', 'PI', 'MS', 'SE', 'MA', 'AM',
+                            'PA']
+
+    # User input component for selecting seller state
+    seller_state = st.selectbox('Select seller state', seller_state_options)
+
+    # Additional user input components
+    review_score = st.slider('Select review score', min_value=1, max_value=5, value=3)
+
+    # Encode the selected product category using the label encoder
+    encoded_product_category = label_encoder.fit_transform([product_category])[0]
+    # Encode the selected seller state using the label encoder
+    encoded_seller_state = label_encoder.fit_transform([seller_state])[0]
+
+    # Prepare input features for prediction
+    input_features = [[review_score, encoded_product_category, encoded_seller_state, purchase_date.year,
+                       purchase_date.month, purchase_date.day]]
+
+    # Make predictions
+    if st.button('Predict Price'):
+        # Make predictions using the model
+        predicted_price = model.predict(input_features)
+
+        # Display prediction
+        st.write('Predicted Price:', predicted_price)
